@@ -33,10 +33,53 @@ class VEDirect:
 
     def refresh(self):
         frames = self._get_data()
+        self.parse_pdu(frames)
 
+    def parse_pdu(self, frames):
         for frame in frames:
+            if frame.startswith(b'Checksum'):
+                # This entry is useless
+                continue
             key, value = frame.strip().decode('utf-8').split('\t')
             self._data[key] = value
+
+
+    def _get_data(self) -> list[bytes]:
+        ''' Returns a PDU array, one entry per line.'''
+        data = []
+        with serial.Serial(self.device, self.speed, timeout=4) as s:
+        #with open('example.pdu', 'rb') as f:
+            s = open('example.pdu', 'rb')
+            # Wait for start of frame
+            while True:
+                frame = s.readline()
+                if frame.startswith(b'PID'):
+                    break
+
+            # slurp all frames
+            frame = b''
+            while not frame.startswith(b'PID'):
+                frame = s.readline()
+                data.append(frame)
+
+
+        # The checksum is for the whole DTU
+        if not VEDirect.check_frame_checksum(data):
+            raise InvalidChecksumException()
+
+        return data
+
+    @staticmethod
+    def check_frame_checksum(frames: list[bytes]):
+        ''' Checks the PDU for validity.
+        The "checksum" generates a char so that the sum
+        of all characters equals 0 mod 256'''
+        chksum = 0
+        for frame in frames:
+            for char in frame:
+                chksum = (chksum + char) % 256
+        return chksum == 0
+
 
 
     @property
@@ -47,7 +90,7 @@ class VEDirect:
     @property
     def battery_amps(self) -> float:
         ''' Returns the battery charging current in Amps'''
-        return mA(self._data['V'])
+        return mA(self._data['A'])
 
     @property
     def solar_volts(self) -> float:
@@ -69,34 +112,7 @@ class VEDirect:
         ''' Returns the MPPT state'''
         return MPPTState(int(self._data['MPPT']))
 
-    def _get_data(self):
-        data = []
-        with serial.Serial(self.device, self.speed, timeout=4) as s:
-            # Wait for start of frame
-            while True:
-                frame = s.readline()
-                if frame.startswith(b'PID'):
-                    break
 
-            data.append(frame)
-            frame = s.readline()
-            while not frame.startswith(b'PID'):
-                data.append(frame)
-                frame = s.readline()
-
-        if not VEDirect.check_frame_checksum(data):
-            raise InvalidChecksumException()
-
-        return data
-
-    @staticmethod
-    def check_frame_checksum(frames: [bytes]):
-        chksum = 0
-        for char in b''.join(frames):
-            chksum = (chksum + char) % 256
-        return chksum == 0
-
-
-
-v = VEDirect()
-print(v.battery_volts)
+if __name__ == '__main__':
+    v = VEDirect()
+    print(f'{v.battery_volts} V')
