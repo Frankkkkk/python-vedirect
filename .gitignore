@@ -1,0 +1,4 @@
+build/
+vedirect.egg-info/
+Pipfile
+Pipfile.lock
