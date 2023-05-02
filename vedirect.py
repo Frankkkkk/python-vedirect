@@ -48,8 +48,6 @@ class VEDirect:
         ''' Returns a PDU array, one entry per line.'''
         data = []
         with serial.Serial(self.device, self.speed, timeout=4) as s:
-        #with open('example.pdu', 'rb') as f:
-            s = open('example.pdu', 'rb')
             # Wait for start of frame
             while True:
                 frame = s.readline()
