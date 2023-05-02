@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name="vedirect",
-    version="1.0.0",
+    version="1.1.0",
     author="Frank Villaro-Dixon",
     author_email="frank@villaro-dixon.eu",
     description=("Interfaces with Victron VE.Direct devices"),
